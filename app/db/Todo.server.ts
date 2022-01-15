@@ -18,9 +18,6 @@ let id = 0;
 
 class Todo {
   todos: TTodo[] = [];
-  constructor() {
-    console.log("aa");
-  }
 
   getTodos = delay(() => {
     return this.todos;

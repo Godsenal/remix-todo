@@ -9,22 +9,24 @@ const TodoItem = (todo: TTodo) => {
   const submit = useSubmit();
 
   const { submission } = useTransition();
-  const isCurrentSubmission =
-    submission?.formData?.get("id") === String(todo.id);
+  const editAction = `/todo/${todo.id}/edit`;
+  const deleteAction = `/todo/${todo.id}/delete`;
 
-  const submittedForm = isCurrentSubmission
-    ? Object.fromEntries(submission?.formData.entries() || [])
-    : null;
+  const submittedForm =
+    submission?.action === editAction
+      ? Object.fromEntries(submission?.formData.entries() || [])
+      : null;
 
-  const { id, description, completed } = {
-    id: todo.id,
+  const { description, completed } = {
     description: submittedForm
       ? String(submittedForm.description)
       : todo.description,
-    completed: submittedForm ? "completed" in submittedForm : todo.completed,
+    completed: submittedForm
+      ? submittedForm.completed === "on"
+      : todo.completed,
   };
 
-  if (isCurrentSubmission && submission.method === "DELETE") {
+  if (submission?.action === deleteAction) {
     return null;
   }
 
@@ -34,25 +36,33 @@ const TodoItem = (todo: TTodo) => {
         style={{ flex: 1 }}
         ref={$form}
         method="put"
+        action={editAction}
         replace={true}
         onSubmit={() => {
           setEditMode(false);
         }}
       >
         <HStack>
-          <input type="hidden" name="id" defaultValue={id} />
           <input type="hidden" name="description" defaultValue={description} />
           {editMode ? (
-            <Input
-              autoFocus={true}
-              name="description"
-              defaultValue={description}
-            />
+            <>
+              <input
+                type="hidden"
+                name="completed"
+                value={String(todo.completed)}
+              />
+              <Input
+                autoFocus={true}
+                name="description"
+                defaultValue={description}
+              />
+            </>
           ) : (
             <>
               <Checkbox
                 name="completed"
-                checked={completed}
+                value="true"
+                defaultChecked={completed}
                 onChange={() => {
                   submit($form.current, { method: "put", replace: true });
                 }}
@@ -73,8 +83,7 @@ const TodoItem = (todo: TTodo) => {
           )}
         </HStack>
       </Form>
-      <Form method="delete" replace={true}>
-        <input type="hidden" name="id" defaultValue={id} />
+      <Form method="delete" action={deleteAction} replace={true}>
         <Button type="submit">Delete</Button>
       </Form>
     </HStack>

@@ -14,29 +14,6 @@ import { useRef, useEffect } from "react";
 
 export const action: ActionFunction = async ({ request }) => {
   const body = await request.formData();
-
-  if (request.method === "DELETE") {
-    const id = body.get("id");
-    invariant(typeof id === "string");
-
-    await Todo.deleteTodo(Number(id));
-
-    return null;
-  }
-
-  if (request.method === "PUT") {
-    const id = body.get("id");
-    const description = body.get("description");
-    const completed = body.has("completed");
-
-    invariant(typeof id === "string");
-    invariant(typeof description === "string");
-
-    await Todo.updateTodo(Number(id), { description, completed });
-
-    return null;
-  }
-
   const description = body.get("description");
 
   if (!description) {
@@ -61,10 +38,8 @@ export default function Index() {
   const todos = useLoaderData<TTodo[]>();
   const actionData = useActionData();
   const transition = useTransition();
-
-  const postError = actionData?.error && actionData?.method === "POST";
   const postedTodo =
-    transition.submission?.method === "POST" &&
+    transition.submission?.action === "/todo" &&
     String(transition.submission?.formData?.get("description"));
 
   const optimisticTodos: TTodo[] = postedTodo
@@ -76,7 +51,7 @@ export default function Index() {
 
   useEffect(() => {
     transition.state === "submitting" &&
-      transition.submission?.method === "POST" &&
+      transition.submission?.action === "/todo" &&
       $form.current?.reset();
   }, [transition.state]);
 
@@ -85,7 +60,7 @@ export default function Index() {
       <Heading textAlign="center">TODO</Heading>
       <Form ref={$form} method="post" replace={true}>
         <Input
-          isInvalid={postError}
+          isInvalid={!!actionData?.error}
           errorBorderColor="red.300"
           name="description"
         />
