@@ -27,8 +27,7 @@ class Todo {
   });
 
   addTodo = delay((description: string) => {
-    this.todos.push({ id: id++, description, completed: false });
-    console.log(this.todos);
+    this.todos.unshift({ id: id++, description, completed: false });
   });
 
   deleteTodo = delay((id: number) => {
