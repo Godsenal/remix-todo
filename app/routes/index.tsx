@@ -12,6 +12,20 @@ import TodoItem from "~/components/TodoItem";
 
 export const action: ActionFunction = async ({ request }) => {
   const body = await request.formData();
+
+  if (request.method === "PUT") {
+    const id = body.get("id");
+    const description = body.get("description");
+    const completed = body.has("completed");
+
+    invariant(typeof id === "string");
+    invariant(typeof description === "string");
+
+    await Todo.updateTodo(Number(id), { description, completed });
+
+    return null;
+  }
+
   const description = body.get("description");
 
   if (!description) {
