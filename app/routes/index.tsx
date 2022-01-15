@@ -10,7 +10,7 @@ import {
 import invariant from "tiny-invariant";
 import Todo, { TTodo } from "~/db/Todo.server";
 import TodoItem from "~/components/TodoItem";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 
 export const action: ActionFunction = async ({ request }) => {
   const body = await request.formData();
@@ -57,25 +57,41 @@ export const loader: LoaderFunction = async () => {
 };
 
 export default function Index() {
-  const $input = useRef<HTMLInputElement>(null);
+  const $form = useRef<HTMLFormElement>(null);
   const todos = useLoaderData<TTodo[]>();
   const actionData = useActionData();
+  const transition = useTransition();
 
   const postError = actionData?.error && actionData?.method === "POST";
+  const postedTodo =
+    transition.submission?.method === "POST" &&
+    String(transition.submission?.formData?.get("description"));
+
+  const optimisticTodos: TTodo[] = postedTodo
+    ? [
+        { id: Math.random(), description: postedTodo, completed: false },
+        ...todos,
+      ]
+    : todos;
+
+  useEffect(() => {
+    transition.state === "submitting" &&
+      transition.submission?.method === "POST" &&
+      $form.current?.reset();
+  }, [transition.state]);
 
   return (
     <Stack maxW="container.sm" mx="auto" mt="10">
       <Heading textAlign="center">TODO</Heading>
-      <Form method="post" replace={true} reloadDocument={true}>
+      <Form ref={$form} method="post" replace={true}>
         <Input
-          ref={$input}
           isInvalid={postError}
           errorBorderColor="red.300"
           name="description"
         />
       </Form>
       <Stack>
-        {todos.map((todo) => (
+        {optimisticTodos.map((todo) => (
           <TodoItem key={todo.id} {...todo} />
         ))}
       </Stack>

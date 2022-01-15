@@ -1,12 +1,32 @@
 import { Button, Checkbox, HStack, Input, Text } from "@chakra-ui/react";
 import { useRef, useState } from "react";
-import { Form, useSubmit } from "remix";
+import { Form, useSubmit, useTransition } from "remix";
 import type { TTodo } from "~/db/Todo.server";
 
-const TodoItem = ({ id, description, completed }: TTodo) => {
+const TodoItem = (todo: TTodo) => {
   const $form = useRef<HTMLFormElement>(null);
   const [editMode, setEditMode] = useState(false);
   const submit = useSubmit();
+
+  const { submission } = useTransition();
+  const isCurrentSubmission =
+    submission?.formData?.get("id") === String(todo.id);
+
+  const submittedForm = isCurrentSubmission
+    ? Object.fromEntries(submission?.formData.entries() || [])
+    : null;
+
+  const { id, description, completed } = {
+    id: todo.id,
+    description: submittedForm
+      ? String(submittedForm.description)
+      : todo.description,
+    completed: submittedForm ? "completed" in submittedForm : todo.completed,
+  };
+
+  if (isCurrentSubmission && submission.method === "DELETE") {
+    return null;
+  }
 
   return (
     <HStack>
@@ -32,7 +52,7 @@ const TodoItem = ({ id, description, completed }: TTodo) => {
             <>
               <Checkbox
                 name="completed"
-                defaultChecked={completed}
+                checked={completed}
                 onChange={() => {
                   submit($form.current, { method: "put", replace: true });
                 }}
