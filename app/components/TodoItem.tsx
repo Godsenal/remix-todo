@@ -1,4 +1,11 @@
-import { Button, Checkbox, HStack, Input, Text } from "@chakra-ui/react";
+import {
+  Button,
+  Center,
+  Checkbox,
+  HStack,
+  Input,
+  Text,
+} from "@chakra-ui/react";
 import { useRef, useState } from "react";
 import { Form, useSubmit, useTransition } from "remix";
 import type { TTodo } from "~/db/Todo.server";
@@ -12,19 +19,11 @@ const TodoItem = (todo: TTodo) => {
   const editAction = `/todo/${todo.id}/edit`;
   const deleteAction = `/todo/${todo.id}/delete`;
 
-  const submittedForm =
-    submission?.action === editAction
-      ? Object.fromEntries(submission?.formData.entries() || [])
-      : null;
-
-  const { description, completed } = {
-    description: submittedForm
-      ? String(submittedForm.description)
-      : todo.description,
-    completed: submittedForm
-      ? submittedForm.completed === "on"
-      : todo.completed,
-  };
+  const optimisticDescription =
+    submission?.action === editAction &&
+    submission?.formData?.has("description")
+      ? String(submission.formData.get("description"))
+      : todo.description;
 
   if (submission?.action === deleteAction) {
     return null;
@@ -32,40 +31,37 @@ const TodoItem = (todo: TTodo) => {
 
   return (
     <HStack>
-      <Form
-        style={{ flex: 1 }}
-        ref={$form}
-        method="put"
-        action={editAction}
-        replace={true}
-        onSubmit={() => {
-          setEditMode(false);
-        }}
-      >
-        <HStack>
-          <input type="hidden" name="description" defaultValue={description} />
-          {editMode ? (
-            <>
-              <input
-                type="hidden"
-                name="completed"
-                value={String(todo.completed)}
-              />
-              <Input
-                autoFocus={true}
-                name="description"
-                defaultValue={description}
-              />
-            </>
-          ) : (
-            <>
+      {editMode ? (
+        <Form
+          style={{ width: "100%" }}
+          method="put"
+          action={editAction}
+          replace={true}
+          onSubmit={() => {
+            setEditMode(false);
+          }}
+        >
+          <Input
+            autoFocus={true}
+            name="description"
+            defaultValue={todo.description}
+          />
+        </Form>
+      ) : (
+        <>
+          <Form
+            method="put"
+            action={editAction}
+            replace={true}
+            style={{ flex: 1 }}
+            onChange={(e) => submit(e.currentTarget)}
+          >
+            <HStack>
+              <input type="hidden" name="completed" value="false" />
               <Checkbox
                 name="completed"
                 value="true"
-                defaultChecked={completed}
-                onChange={() => {
-                  submit($form.current, { method: "put", replace: true });
-                }}
+                defaultChecked={todo.completed}
               />
               <Text
                 onDoubleClick={() => setEditMode(true)}
@@ -77,15 +73,15 @@ const TodoItem = (todo: TTodo) => {
                   },
                 }}
               >
-                {description}
+                {optimisticDescription}
               </Text>
-            </>
-          )}
-        </HStack>
-      </Form>
-      <Form method="delete" action={deleteAction} replace={true}>
-        <Button type="submit">Delete</Button>
-      </Form>
+            </HStack>
+          </Form>
+          <Form method="delete" action={deleteAction} replace={true}>
+            <Button type="submit">Delete</Button>
+          </Form>
+        </>
+      )}
     </HStack>
   );
 };
