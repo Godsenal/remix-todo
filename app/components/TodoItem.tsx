@@ -1,42 +1,33 @@
-import {
-  Button,
-  Center,
-  Checkbox,
-  HStack,
-  Input,
-  Text,
-} from "@chakra-ui/react";
-import { useRef, useState } from "react";
-import { Form, useSubmit, useTransition } from "remix";
+import { Button, Checkbox, HStack, Input, Text } from "@chakra-ui/react";
+import { useState } from "react";
+import { useFetcher } from "remix";
 import type { TTodo } from "~/db/Todo.server";
 
 const TodoItem = (todo: TTodo) => {
-  const $form = useRef<HTMLFormElement>(null);
+  const editFetcher = useFetcher();
+  const deleteFetcher = useFetcher();
   const [editMode, setEditMode] = useState(false);
-  const submit = useSubmit();
 
-  const { submission } = useTransition();
   const editAction = `/todo/${todo.id}/edit`;
   const deleteAction = `/todo/${todo.id}/delete`;
 
   const optimisticDescription =
-    submission?.action === editAction &&
-    submission?.formData?.has("description")
-      ? String(submission.formData.get("description"))
+    editFetcher.submission?.action === editAction &&
+    editFetcher.submission?.formData?.has("description")
+      ? String(editFetcher.submission.formData.get("description"))
       : todo.description;
 
-  if (submission?.action === deleteAction) {
+  if (deleteFetcher.submission?.action === deleteAction) {
     return null;
   }
 
   return (
     <HStack>
       {editMode ? (
-        <Form
+        <editFetcher.Form
           style={{ width: "100%" }}
           method="put"
           action={editAction}
-          replace={true}
           onSubmit={() => {
             setEditMode(false);
           }}
@@ -46,15 +37,14 @@ const TodoItem = (todo: TTodo) => {
             name="description"
             defaultValue={todo.description}
           />
-        </Form>
+        </editFetcher.Form>
       ) : (
         <>
-          <Form
+          <editFetcher.Form
             method="put"
             action={editAction}
-            replace={true}
             style={{ flex: 1 }}
-            onChange={(e) => submit(e.currentTarget)}
+            onChange={(e) => editFetcher.submit(e.currentTarget)}
           >
             <HStack>
               <input type="hidden" name="completed" value="false" />
@@ -76,10 +66,10 @@ const TodoItem = (todo: TTodo) => {
                 {optimisticDescription}
               </Text>
             </HStack>
-          </Form>
-          <Form method="delete" action={deleteAction} replace={true}>
+          </editFetcher.Form>
+          <deleteFetcher.Form method="delete" action={deleteAction}>
             <Button type="submit">Delete</Button>
-          </Form>
+          </deleteFetcher.Form>
         </>
       )}
     </HStack>

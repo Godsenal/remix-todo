@@ -1,11 +1,9 @@
 import { Heading, Input, Stack } from "@chakra-ui/react";
 import {
   ActionFunction,
-  Form,
   LoaderFunction,
-  useActionData,
+  useFetcher,
   useLoaderData,
-  useTransition,
 } from "remix";
 import invariant from "tiny-invariant";
 import Todo, { TTodo } from "~/db/Todo.server";
@@ -35,12 +33,11 @@ export const loader: LoaderFunction = async () => {
 
 export default function Index() {
   const $form = useRef<HTMLFormElement>(null);
+  const fetcher = useFetcher();
   const todos = useLoaderData<TTodo[]>();
-  const actionData = useActionData();
-  const transition = useTransition();
   const postedTodo =
-    transition.submission?.action === "/todo" &&
-    String(transition.submission?.formData?.get("description"));
+    fetcher.submission &&
+    String(fetcher.submission?.formData?.get("description"));
 
   const optimisticTodos: TTodo[] = postedTodo
     ? [
@@ -50,21 +47,19 @@ export default function Index() {
     : todos;
 
   useEffect(() => {
-    transition.state === "submitting" &&
-      transition.submission?.action === "/todo" &&
-      $form.current?.reset();
-  }, [transition.state]);
+    fetcher.type === "actionSubmission" && $form.current?.reset();
+  }, [fetcher]);
 
   return (
     <Stack maxW="container.sm" mx="auto" mt="10">
       <Heading textAlign="center">TODO</Heading>
-      <Form ref={$form} method="post" replace={true}>
+      <fetcher.Form ref={$form} method="post">
         <Input
-          isInvalid={!!actionData?.error}
+          isInvalid={!!fetcher.data?.error}
           errorBorderColor="red.300"
           name="description"
         />
-      </Form>
+      </fetcher.Form>
       <Stack>
         {optimisticTodos.map((todo) => (
           <TodoItem key={todo.id} {...todo} />
